@@ -2,20 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+*{
+  margin: 0;
+  padding: 0;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.bg-custom-primary{
+  background: #116A58;
+  color: #FFF;
+}
+
+.list-ambulance{
+  background-image: url('/ambulace-list-bg2.png');
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% 35%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0px 3px 1px rgba(0,0,0,0.3);
+  transition: all 0.3s linear ease-in-out;
+}
+.card-container::-webkit-scrollbar{
+  width: 0;
+  height: 0;
+}
+#remember:checked::before{
+  content: '✔';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+}
+
+
