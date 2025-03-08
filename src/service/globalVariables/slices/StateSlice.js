@@ -9,11 +9,17 @@ const initialState = {
     isList: false,
     selectedCard: 1,
     isAmbulance: false,
-    userCurrentLocation: { lat: 0, lng: 0 },
+    userCurrentLocation: { lat: 20.278385, lng: 85.862898 },
     userLocation: true,
-    mapCenter: { lat: 0, lng: 0 },
+    mapCenter: { lat: 20.278385, lng: 85.862898 },
     userDestinationRoute: false,
     userVehicleRoute: false,
+    pickupLocation: { lat: 20.278385, lng: 85.862898 },
+    destinationLocation: { lat: 20.278385, lng: 85.862898 },
+    userDesDistance:"",
+    userDesDuration:"",
+    uservehDistance:"",
+    uservehDuration:"",
 };
 
 const stateSlice = createSlice({
@@ -53,10 +59,32 @@ const stateSlice = createSlice({
         setUserLocation: (state, action) => {  // 🔥 Add mapCenter reducer
             state.userLocation = action.payload;
         },
+        setPickupLocation: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.pickupLocation = action.payload;
+        },
+        setDestinationLocation: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.destinationLocation = action.payload;
+        },
+        setDestinationDistance: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.userDesDistance = action.payload;
+        },
+        setDestinationDuration: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.userDesDuration = action.payload;
+        },
+        setVehicleDistance: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.uservehDistance = action.payload;
+        },
+        setVehicleDuration: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.uservehDuration = action.payload;
+        },
     },
 });
 
 export const {
+    setDestinationDistance,
+    setDestinationDuration,
+    setVehicleDistance,
+    setVehicleDuration,
     setMyValue,
     setIsForSomeone,
     setIsList,
@@ -68,5 +96,7 @@ export const {
     setUserDestinationRoute,
     setUserVehicleRoute,
     setUserLocation,
+    setDestinationLocation,
+    setPickupLocation,
 } = stateSlice.actions;
 export default stateSlice.reducer;

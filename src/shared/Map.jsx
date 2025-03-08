@@ -1,7 +1,7 @@
 "use client";
-import { setMapCenter, setUserCurrentLocation } from '@/service/globalVariables/slices/StateSlice';
-import { DirectionsRenderer, DirectionsService, GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { setDestinationDistance, setDestinationDuration, setMapCenter, setUserCurrentLocation, setVehicleDistance, setVehicleDuration } from '@/service/globalVariables/slices/StateSlice';
+import { DirectionsRenderer, DirectionsService, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 const mapContainerStyle = {
@@ -15,6 +15,7 @@ const googleApi = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
 const Map = () => {
 
+    const libraries = useMemo(() => ["places"], []);
     const dispatch = useDispatch();
     const mapRef = useRef(null);
 
@@ -23,6 +24,10 @@ const Map = () => {
     const [mapAmbulanceIcon, setMapAmbulanceIcon] = useState(null);
     const [directions1, setDirections1] = useState(null);
     const [directions2, setDirections2] = useState(null);
+    const [userDestinationDistance, setUserDestinationDistance] = useState("");
+    const [userDestinationDuration, setUserDestinationDuration] = useState("");
+    const [userVehicleDistance, setUserVehicleDistance] = useState("");
+    const [userVehicleDuration, setUserVehicleDuration] = useState("");
 
     const isAmbulance = useSelector((state) => state.state.isAmbulance);
     const selectedCard = useSelector((state) => state.state.selectedCard);
@@ -36,7 +41,7 @@ const Map = () => {
 
     const currentLocation = latitude !== null && longitude !== null
         ? { lat: latitude, lng: longitude }
-        : null;
+        : { lat: 20.278385, lng: 85.862898 };
 
     const alsAmbulanceLocations = [
         { lat: 20.278385, lng: 85.862898 },
@@ -60,14 +65,14 @@ const Map = () => {
         { lat: 20.236950, lng: 85.840983 },
         { lat: 20.246081, lng: 85.885852 },
     ];
-    const destin = { lat: 20.278385, lng: 85.862898 };
-    const orig = { lat: 20.258295, lng: 85.841306 };
+    const destin = useSelector((state) => state.state.destinationLocation);
+    const orig = useSelector((state) => state.state.pickupLocation);
     const vehicle = { lat: 20.269728, lng: 85.823238 };
 
     const [ambulanceType, setAmbulanceType] = useState(null);
     const { isLoaded, loadError } = useLoadScript({
         googleMapsApiKey: googleApi,
-        libraries: ['places'],
+        libraries: libraries,
     });
 
     useEffect(() => {
@@ -126,8 +131,7 @@ const Map = () => {
                 setTimeout(() => {
                     setMapAmbulanceIcon({
                         url: "./map_ambulance.png", // Your custom marker icon
-                        scaledSize: new window.google.maps.Size(50, 50), // Width: 50px, Height: 50px
-                        anchor: new window.google.maps.Point(25, 25), // Center the icon
+                        scaledSize: new window.google.maps.Size(0, 0), // Width: 50px, Height: 50px
                     });
                 }, 500); // Delay of 500ms
             }
@@ -135,18 +139,40 @@ const Map = () => {
     }, [isLoaded, selectedCard]);
 
     const directionsCallback1 = useCallback((response) => {
-        if (response !== null && response.status === "OK") {
+        // console.log(response);
+        if (response && response.status === "OK") {
             setDirections1((prev) => (JSON.stringify(prev) === JSON.stringify(response) ? prev : response));
             // setRoutePath1(response.routes[0].overview_path);
+            const route = response.routes[0];
+            const leg = route.legs[0];
+            const distance = leg.distance.text; // Distance in human-readable format (e.g., "10 km")
+            const duration = leg.duration.text; // Duration in human-readable format (e.g., "2 hours")
+
+            // Update the distance and duration state
+            setUserDestinationDistance(distance);
+            setUserDestinationDuration(duration);
+            dispatch(setDestinationDistance(distance))
+            dispatch(setDestinationDuration(duration))
         } else {
             console.error("Directions request 1 failed");
         }
     }, []);
 
     const directionsCallback2 = useCallback((response) => {
-        if (response !== null && response.status === "OK") {
+        if (response && response.status === "OK") {
             setDirections2((prev) => (JSON.stringify(prev) === JSON.stringify(response) ? prev : response));
             // setRoutePath2(response.routes[0].overview_path);
+            const route = response.routes[0];
+            const leg = route.legs[0];
+            const distance = leg.distance.text; // Distance in human-readable format (e.g., "10 km")
+            const duration = leg.duration.text; // Duration in human-readable format (e.g., "2 hours")
+
+            // Update the distance and duration state
+            setUserVehicleDistance(distance);
+            setUserVehicleDuration(duration);
+            dispatch(setVehicleDistance(distance));
+            dispatch(setVehicleDuration(duration));
+            
         } else {
             console.error("Directions request 2 failed");
         }
@@ -156,20 +182,31 @@ const Map = () => {
     const [destinationIcon, setDestinationIcon] = useState(null);
     const [vehicleIcon, setVehicleIcon] = useState(null);
 
+    const isValidLatLng = (obj) => obj && typeof obj.lat === "number" && typeof obj.lng === "number";
+
     useEffect(() => {
         if (isLoaded) {
+            if (selectedCard == 1) {
+                setVehicleIcon({
+                    url: "./als-top-view (1) 1.png", // Path to your vehicle icon
+                    scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
+                    anchor: new window.google.maps.Point(20, 20), // Anchor point
+                })
+            }
+            if (selectedCard == 2) {
+                setVehicleIcon({
+                    url: "./blsAmbulance.png", // Path to your vehicle icon
+                    scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
+                    anchor: new window.google.maps.Point(20, 20), // Anchor point
+                })
+            }
             setDestinationIcon({
-                url: "./als-top-view (1) 1.png", // Path to your destination icon
+                url: "./destinationPin.png", // Path to your destination icon
                 scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
-                anchor: new window.google.maps.Point(20, 20), // Anchor point
             });
-            setVehicleIcon({
-                url: "./als-top-view (1) 1.png", // Path to your vehicle icon
-                scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
-                anchor: new window.google.maps.Point(20, 20), // Anchor point
-            })
+
         }
-    }, [isLoaded]);
+    }, [isLoaded, selectedCard]);
     // useEffect(() => {
     //     if (!userDestinationRoute) {
     //         setRoutePath1(null);
@@ -230,6 +267,12 @@ const Map = () => {
                             title="Destination"
                         />}
 
+                        {userDestinationRoute && <Marker
+                            position={orig}
+                            // icon={destinationIcon}
+                            title="someone"
+                        />}
+
                         {/* Vehicle Marker with Custom Icon */}
                         {userVehicleRoute && <Marker
                             position={vehicle}
@@ -237,24 +280,32 @@ const Map = () => {
                             title="Vehicle"
                         />}
                         {/* First Directions Service */}
-                        <DirectionsService
-                            options={{
-                                destination: destin,
-                                origin: currentLocation,
-                                travelMode: google.maps.TravelMode.DRIVING,
-                            }}
-                            callback={directionsCallback1}
-                        />
+                        {
+                            isValidLatLng(destin) && isValidLatLng(orig) && (
+                                <DirectionsService
+                                    options={{
+                                        destination: destin,
+                                        origin: orig,
+                                        travelMode: google.maps.TravelMode.DRIVING,
+                                    }}
+                                    callback={directionsCallback1}
+                                />
+                            )
+                        }
 
                         {/* Second Directions Service */}
-                        <DirectionsService
-                            options={{
-                                destination: vehicle,
-                                origin: currentLocation,
-                                travelMode: google.maps.TravelMode.DRIVING,
-                            }}
-                            callback={directionsCallback2}
-                        />
+                        {
+                            isValidLatLng(destin) && isValidLatLng(orig) && (
+                                <DirectionsService
+                                    options={{
+                                        destination: vehicle,
+                                        origin: orig,
+                                        travelMode: google.maps.TravelMode.DRIVING,
+                                    }}
+                                    callback={directionsCallback2}
+                                />
+                            )
+                        }
 
                         {/* First Directions Renderer */}
                         {userDestinationRoute && directions1 && (

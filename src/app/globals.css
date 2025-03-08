@@ -29,6 +29,10 @@ body {
   width: 0;
   height: 0;
 }
+.pastRidesListCon::-webkit-scrollbar{
+  width: 0;
+  height: 0;
+}
 #remember:checked::before{
   content: '✔';
       position: absolute;
