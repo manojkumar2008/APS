@@ -1,11 +1,11 @@
 "use client";
 
 import { getAllAmbulance } from "@/service/Ambulance";
-import { setDestinationLocation, setIsAmbulance, setIsForSomeone, setIsList, setMapCenter, setMyValue, setPickupLocation, setSelectedCard, setUserCurrentLocation, setUserDestinationRoute, setUserLocation, setUserVehicleRoute, setZoom } from "@/service/globalVariables/slices/StateSlice";
+import { setDestinationLocation, setIsAmbulance, setIsForSomeone, setIsList, setMapCenter, setMyValue, setPickupLocation, setSelectedCard, setUserDestinationRoute, setUserLocation, setUserVehicleRoute, setZoom } from "@/service/globalVariables/slices/StateSlice";
 import { Autocomplete, useLoadScript } from '@react-google-maps/api';
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Loader from "./Loader";
 import Map from "./Map";
@@ -135,17 +135,19 @@ const SearchForm = () => {
             }
         }
     };
-
+    const [isSomeone, setIsSomeone] = useState(true);
     const handleSelect = (option) => {
         setSelectedOption(option); // Update the button text
         setIsOpen(false); // Close the dropdown after selection
         if (option == "for someone") {
             dispatch(setIsForSomeone(true));
+            setIsSomeone(false);
             setPickup("");
             setSelected("for someone");
         }
         if (option == "For patient") {
             setSelected("For patient");
+            setIsSomeone(true);
             // console.log(pickupLocation);
             const { lat: latitude, lng: longitude } = userCurrentLocation;
             getAddressFromCoords(latitude, longitude);
@@ -224,7 +226,11 @@ const SearchForm = () => {
         setAmbulances(amb);
     }
 
-    const getAddressFromCoords = (lat, lng) => {
+    const getAddressFromCoords = useCallback((lat, lng) => {
+        if (!lat || !lng) {
+            console.error("Invalid coordinates: ", lat, lng);
+            return;
+        }
         const geocoder = new window.google.maps.Geocoder();
         const latLng = { lat, lng };
 
@@ -236,21 +242,28 @@ const SearchForm = () => {
                 console.error("Geocoder failed: ", status);
             }
         });
-    };
+    }, [dispatch]);
 
     useEffect(() => {
-        setTimeout(() => {
-            if (pickup.length === 0) {
+        if (isLoaded && pickup.length === 0 && isSomeone) {
+            setTimeout(() => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
                             const { latitude, longitude } = position.coords;
                             getAddressFromCoords(latitude, longitude);
-                        }
-                    )
+                        },
+                        (error) => console.error("Geolocation error:", error),
+                        { timeout: 5000 }
+                    );
                 }
-            }
-        }, 500);
+            }, 1000); // Delay geolocation fetching by 1 second
+        }
+    }, [isLoaded]);
+
+
+    useEffect(() => {
+        if (!afterList) return;
 
         if (afterList) {
             if (pickup.length <= 2 || destination.length <= 2) {
@@ -263,26 +276,17 @@ const SearchForm = () => {
         formatDuration();
         getAmbulance();
         locationCenter();
-    }, [pickup, destination, UVDuration]);
+    }, [pickup, destination, afterList]);
 
     const locationCenter = () => {
+        if (!userCurrentLocation) return;
         // console.log('clicked');
-        if (userCurrentLocation) {
-            dispatch(setMapCenter(null)); // Step 1: Reset map center
-            dispatch(setZoom(null));
-            setTimeout(() => {
-                dispatch(setZoom(12));
-                dispatch(setMapCenter(userCurrentLocation)); // Step 2: Set correct location
-            }, 100); // Small delay ensures Redux updates state
-        }
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    dispatch(setUserCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude }));
-                }
-            )
-        }
+        dispatch(setMapCenter(null)); // Step 1: Reset map center
+        dispatch(setZoom(null));
+        setTimeout(() => {
+            dispatch(setZoom(12));
+            dispatch(setMapCenter(userCurrentLocation)); // Step 2: Set correct location
+        }, 100); // Small delay ensures Redux updates state
     }
 
     // console.log(pickup);
