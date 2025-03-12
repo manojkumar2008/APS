@@ -35,6 +35,7 @@ const Map = () => {
     const mapCenter = useSelector((state) => state.state.mapCenter);
     const userDestinationRoute = useSelector((state) => state.state.userDestinationRoute);
     const userVehicleRoute = useSelector((state) => state.state.userVehicleRoute);
+    const zoom = useSelector((state) => state.state.zoom);
     // const [routePath1, setRoutePath1] = useState(null);
     // const [routePath2, setRoutePath2] = useState(null);
     const userLocation = useSelector((state) => state.state.userLocation);
@@ -189,14 +190,21 @@ const Map = () => {
             if (selectedCard == 1) {
                 setVehicleIcon({
                     url: "./als-top-view (1) 1.png", // Path to your vehicle icon
-                    scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
+                    scaledSize: new window.google.maps.Size(40, 50), // Size of the icon
                     anchor: new window.google.maps.Point(20, 20), // Anchor point
                 })
             }
             if (selectedCard == 2) {
                 setVehicleIcon({
                     url: "./blsAmbulance.png", // Path to your vehicle icon
-                    scaledSize: new window.google.maps.Size(40, 40), // Size of the icon
+                    scaledSize: new window.google.maps.Size(40, 50), // Size of the icon
+                    anchor: new window.google.maps.Point(20, 20), // Anchor point
+                })
+            }
+            if (selectedCard == 3) {
+                setVehicleIcon({
+                    url: "./hv-ambulance2.png", // Path to your vehicle icon
+                    scaledSize: new window.google.maps.Size(50, 40), // Size of the icon
                     anchor: new window.google.maps.Point(20, 20), // Anchor point
                 })
             }
@@ -232,7 +240,7 @@ const Map = () => {
         <div className='w-full h-96 sm:w-full md:h-full lg:w-full lg:h-full rounded-lg overflow-hidden  sm:mt-0 lg:mt-0'>
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
-                zoom={12}
+                zoom={zoom}
                 center={mapCenter}
                 options={{
                     mapTypeControl: false,

@@ -1,7 +1,7 @@
 "use client";
 
 import { getAllAmbulance } from "@/service/Ambulance";
-import { setDestinationLocation, setIsAmbulance, setIsForSomeone, setIsList, setMapCenter, setMyValue, setPickupLocation, setSelectedCard, setUserCurrentLocation, setUserDestinationRoute, setUserLocation, setUserVehicleRoute } from "@/service/globalVariables/slices/StateSlice";
+import { setDestinationLocation, setIsAmbulance, setIsForSomeone, setIsList, setMapCenter, setMyValue, setPickupLocation, setSelectedCard, setUserCurrentLocation, setUserDestinationRoute, setUserLocation, setUserVehicleRoute, setZoom } from "@/service/globalVariables/slices/StateSlice";
 import { Autocomplete, useLoadScript } from '@react-google-maps/api';
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -20,9 +20,13 @@ const SearchForm = () => {
     const selectedCard = useSelector((state) => state.state.selectedCard);
     const userCurrentLocation = useSelector((state) => state.state.userCurrentLocation);
     const userDesDistance = useSelector((state) => state.state.userDesDistance);
-    const uservehDuration = useSelector((state) => state.state.uservehDuration);
+    const UVDuration = useSelector((state) => state.state.uservehDuration);
+    // const pickupLocation = useSelector((state) => state.state.pickupLocation);
     // const userDestinationRoute = useSelector((state) => state.state.userDestinationRoute);
 
+    const [mm, setmm] = useState("");
+    const [hh, sethh] = useState("");
+    const [dd, setdd] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const [isConfirmation, setIsConfirmation] = useState(false);
     const [selectedOption, setSelectedOption] = useState("For Patient");
@@ -34,6 +38,9 @@ const SearchForm = () => {
     const [CR, setCR] = useState(false);
 
     const [pickup, setPickup] = useState("");
+    const [minNum, setMinNum] = useState("");
+    const [minLet, setMinLet] = useState("");
+    const [isOnlymm, setIsOnlymm] = useState(false);
     const [destination, setDestination] = useState("");
     const [ambulances, setAmbulances] = useState(null);
     // const [selectedCard, setSelectedCard] = useState(1);
@@ -43,6 +50,7 @@ const SearchForm = () => {
     const [userphone, setUserphone] = useState("");
     const [username, setUsername] = useState("");
     const [isExpanded, setIsExpanded] = useState(false);
+    const [selected, setSelected] = useState("For patient");
 
     const confirmContent = "I, the undersigned, confirm that I have been informed about the appropriate level of medical support required for the patient’s condition. Advanced Life Support (ALS) is required for critical patients who need advanced medical interventions such as cardiac monitoring, airway management, and emergency medications. Basic Life Support (BLS) is suitable for non-critical patients, providing essential medical transport with basic first aid and oxygen support.";
     const wordLimit = 35;
@@ -61,6 +69,35 @@ const SearchForm = () => {
         googleMapsApiKey: googleApi, // Replace with your API key
         libraries: libraries,
     });
+
+    const formatDuration = () => {
+        const parts = UVDuration.split(" ");
+
+        if (parts.length === 6) {
+            let minutes = `${parts[4]} ${parts[5]}`;
+            let hours = `${parts[2]} ${parts[3]}`;
+            let days = `${parts[0]} ${parts[1]}`;
+            setmm(minutes);
+            sethh(hours);
+            setdd(days);
+            setIsOnlymm(false);
+        } else if (parts.length === 4) {
+            let minutes = `${parts[2]} ${parts[3]}`;
+            let hours = `${parts[0]} ${parts[1]}`;
+            setmm(minutes);
+            sethh(hours);
+            setdd("");
+            setIsOnlymm(false);
+        } else if (parts.length === 2) {
+            let minutes = `${parts[0]} ${parts[1]}`;
+            setIsOnlymm(true);
+            setMinNum(`${parts[0]}`);
+            setMinLet(`${parts[1]}`);
+            setmm(minutes);
+            sethh("");
+            setdd("");
+        }
+    };
 
     const onPickupLoad = (autocomplete) => {
         pickupAutocompleteRef.current = autocomplete;
@@ -105,6 +142,13 @@ const SearchForm = () => {
         if (option == "for someone") {
             dispatch(setIsForSomeone(true));
             setPickup("");
+            setSelected("for someone");
+        }
+        if (option == "For patient") {
+            setSelected("For patient");
+            // console.log(pickupLocation);
+            const { lat: latitude, lng: longitude } = userCurrentLocation;
+            getAddressFromCoords(latitude, longitude);
         }
 
     };
@@ -196,13 +240,15 @@ const SearchForm = () => {
 
     useEffect(() => {
         setTimeout(() => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        getAddressFromCoords(latitude, longitude);
-                    }
-                )
+            if (pickup.length === 0) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            getAddressFromCoords(latitude, longitude);
+                        }
+                    )
+                }
             }
         }, 500);
 
@@ -212,15 +258,20 @@ const SearchForm = () => {
                 dispatch(setMyValue(true));
             }
         }
+        // const formatedDuration = formatDuration(UVDuration);
+        // setUservehDuration(formatedDuration);
+        formatDuration();
         getAmbulance();
         locationCenter();
-    }, [pickup, destination]);
+    }, [pickup, destination, UVDuration]);
 
     const locationCenter = () => {
         // console.log('clicked');
         if (userCurrentLocation) {
             dispatch(setMapCenter(null)); // Step 1: Reset map center
+            dispatch(setZoom(null));
             setTimeout(() => {
+                dispatch(setZoom(12));
                 dispatch(setMapCenter(userCurrentLocation)); // Step 2: Set correct location
             }, 100); // Small delay ensures Redux updates state
         }
@@ -268,19 +319,21 @@ const SearchForm = () => {
                             </svg>
                         </button>
                         {isOpen && (
-                            <div className="absolute z-10 bg-[#116A5899] rounded-lg">
-                                <ul className="py-2 text-sm text-white capitalize">
-                                    <li onClick={() => handleSelect("For patient")} className='cursor-pointer active'>
-                                        <a className="block px-4 py-2 hover:bg-[#ffffff20]">
-                                            For patient
-                                        </a>
-                                    </li>
-                                    <li onClick={() => handleSelect("for someone")} className='cursor-pointer'>
-                                        <a className="block px-4 py-2 hover:bg-[#ffffff20]">
-                                            for someone
-                                        </a>
-                                    </li>
-                                </ul>
+                            <div className="fixed z-30 h-screen inset-0" onClick={() => { setIsOpen(!isOpen); }}>
+                                <div className="absolute top-72 left-8 z-30 bg-[#116A58] rounded-lg" onClick={(e) => e.stopPropagation()}>
+                                    <ul className="py-2 text-sm text-white capitalize">
+                                        <li onClick={() => handleSelect("For patient")} className={`cursor-pointer ${selected === "For patient" ? "text-[#ff5e00] font-bold" : ""}`}>
+                                            <a className="block px-4 py-2 hover:bg-[#ffffff20]">
+                                                For patient
+                                            </a>
+                                        </li>
+                                        <li onClick={() => handleSelect("for someone")} className={`cursor-pointer ${selected === "for someone" ? "text-[#ff5e00] font-bold" : ""}`}>
+                                            <a className="block px-4 py-2 hover:bg-[#ffffff20]">
+                                                for someone
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -302,6 +355,7 @@ const SearchForm = () => {
                         </div>
                         <div className="mb-4 relative">
                             <span className='absolute top-5 left-2 w-4 h-4'><img src="square.png" alt="" /></span>
+                            <span className='absolute top-5 right-2 w-3 h-3 cursor-pointer' onClick={() => { setDestination(""); }}><img src="./close.png" /></span>
                             <Autocomplete onLoad={onDestinationLoad} onPlaceChanged={onDestinationPlaceChanged}>
                                 <input
                                     type="text"
@@ -314,7 +368,7 @@ const SearchForm = () => {
                             </Autocomplete>
                         </div>
                     </div>
-                    
+
                     <div className="button w-full flex justify-center mb-4">
                         {
                             !isList ?
@@ -330,10 +384,21 @@ const SearchForm = () => {
                     transition={{ duration: 0.5 }}
                     id="bookingConfirm"
                     className="card card-confirm w-full md:w-80 lg:w-80 border border-[#5B5B5B40] rounded-md p-2 mt-4 md:mx-2 md:mt-4 lg:mt-0" style={{ height: "fit-content" }}>
-                    <div className="header-section border-b flex justify-between items-center p-2">
+                    <div className="header-section border-b flex justify-between items-center p-2 pt-0">
                         <h2 className='capitalize font-bold text-lg mt-1 mx-1 text-[#FF7700]'>booking is confirmed !</h2>
-                        <div className="time-view w-12 h-12 bg-[#116A58] flex flex-col justify-center items-center rounded-sm text-white">
-                            <span className="text-lg leading-snug text-center">{uservehDuration}</span>
+                        <div className="time-view w-14 h-14 px-1 bg-[#116A58] flex flex-col justify-center items-center rounded-sm text-white">
+                            <span className="text-xs leading-snug text-center">{
+                                dd
+                            }</span>
+                            <span className="text-xs leading-snug text-center">{
+                                hh
+                            }</span>
+                            <span className="text-xs leading-snug text-center">{
+                                isOnlymm ? (<span>
+                                    <span className="text-lg">{minNum}</span><br />
+                                    <span>{minLet}</span>
+                                </span>) : mm
+                            }</span>
                         </div>
                     </div>
                     <div className="address-section border-b flex flex-row justify-between p-2">
@@ -379,17 +444,17 @@ const SearchForm = () => {
 
                 </motion.div>)
             }
-            <div className={`mapNlistCon relative ${isAmbulaceList?"h-auto":"h-[100vh]"} md:h-[86vh] lg-[86vh] xl-[86vh] z-10`}>
+            <div className={`mapNlistCon relative ${isAmbulaceList ? "h-auto" : "h-[100vh]"} md:h-[86vh] lg-[86vh] xl-[86vh] z-10`}>
                 <div className="small-device-map block md:hidden lg:hidden h-5/6 w-full relative">
-                {
-                    !isAmbulaceList?(
-                    <span className="absolute top-3 left-3 z-20 bg-[#d9d9d9] h-10 w-10 rounded-full flex items-center justify-center"
-                    onClick={()=>{setIsAmbulaceList(true); dispatch(setIsList(false));}}
-                    >
-                        <img src="./leftArrow.png" className="h-5 w-5"/>
-                    </span>
-                    ):""
-                }
+                    {
+                        !isAmbulaceList ? (
+                            <span className="absolute top-3 left-3 z-20 bg-[#d9d9d9] h-10 w-10 rounded-full flex items-center justify-center"
+                                onClick={() => { setIsAmbulaceList(true); dispatch(setIsList(false)); }}
+                            >
+                                <img src="./leftArrow.png" className="h-5 w-5" />
+                            </span>
+                        ) : ""
+                    }
                     <Map />
                 </div>
                 {isList ?

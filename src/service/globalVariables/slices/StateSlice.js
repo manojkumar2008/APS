@@ -20,6 +20,7 @@ const initialState = {
     userDesDuration:"",
     uservehDistance:"",
     uservehDuration:"",
+    zoom: 12,
 };
 
 const stateSlice = createSlice({
@@ -77,6 +78,9 @@ const stateSlice = createSlice({
         setVehicleDuration: (state, action) => {  // 🔥 Add mapCenter reducer
             state.uservehDuration = action.payload;
         },
+        setZoom: (state, action) => {  // 🔥 Add mapCenter reducer
+            state.zoom = action.payload;
+        },
     },
 });
 
@@ -98,5 +102,6 @@ export const {
     setUserLocation,
     setDestinationLocation,
     setPickupLocation,
+    setZoom,
 } = stateSlice.actions;
 export default stateSlice.reducer;
